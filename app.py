@@ -84,10 +84,12 @@ def format_player_name(row):
 def format_team_name(row):
     """Format team name from DataFrame row"""
     try:
-        team = row.get("team", "") if hasattr(row, 'get') else ""
-        if isinstance(team, dict):
-            return team.get("full_name", team.get("name", "Unknown"))
-        return str(team).strip() if team else "Unknown"
+        # Access team directly from pandas Series
+        if "team" in row.index:
+            team = row["team"]
+            if pd.notna(team) and str(team).strip():
+                return str(team).strip()
+        return "Unknown"
     except:
         return "Unknown"
 
@@ -97,8 +99,8 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Check if we have any data at all
     if players_df.empty:
-        st.warning("No player data available for the 2023-2024 season yet.")
-        st.info("💡 Tip: The balldontlie.io API updates as games are played. Check back during the regular season!")
+        st.warning("No player data available for the 2025-2026 season yet.")
+        st.info("💡 Tip: The NBA API updates as games are played. Check back during the regular season!")
         return
     
     # Sidebar filters
@@ -124,7 +126,7 @@ def display_player_rankings(players_df, calculator, projector):
     top_players = calculator.rank_players(players_with_projections, top_n=top_n_players)
     
     if top_players.empty:
-        st.warning("No player statistics available yet for the 2023-2024 season.")
+        st.warning("No player statistics available yet for the 2025-2026 season.")
         st.info("The API may not have season averages data yet. This data becomes available once games are played.")
         return
     
@@ -324,7 +326,7 @@ def display_team_standings(team_stats_df, calculator, projector):
     st.markdown('<p class="sub-header">🏀 Team Standings & Rankings</p>', unsafe_allow_html=True)
     
     if team_stats_df.empty:
-        st.warning("No team data available for the 2023-2024 season yet.")
+        st.warning("No team data available for the 2025-2026 season yet.")
         return
     
     # Calculate standings and projections
