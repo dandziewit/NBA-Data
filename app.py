@@ -208,6 +208,7 @@ def display_player_rankings(players_df, calculator, projector):
         # Top 15 players efficiency bar chart
         top_15 = top_players.head(15).copy()
         top_15["Player"] = top_15.apply(format_player_name, axis=1)
+        top_15["Team"] = top_15["team"] if "team" in top_15.columns else "N/A"
         
         fig = px.bar(
             top_15,
@@ -218,7 +219,7 @@ def display_player_rankings(players_df, calculator, projector):
             labels={"efficiency": "Efficiency Rating", "Player": ""},
             color="efficiency",
             color_continuous_scale="Blues",
-            hover_data=["team"]
+            hover_data={"Team": True, "efficiency": ":.2f"} if "team" in top_15.columns else None
         )
         fig.update_layout(height=500, showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
@@ -231,15 +232,20 @@ def display_player_rankings(players_df, calculator, projector):
             top_10["Player"] = top_10.apply(format_player_name, axis=1)
             
             fig2 = go.Figure()
-            fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"], 
-                                  customdata=top_10["team"],
-                                  hovertemplate='<b>%{x}</b><br>PTS: %{y}<br>Team: %{customdata}<extra></extra>'))
-            fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"],
-                                  customdata=top_10["team"],
-                                  hovertemplate='<b>%{x}</b><br>REB: %{y}<br>Team: %{customdata}<extra></extra>'))
-            fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"],
-                                  customdata=top_10["team"],
-                                  hovertemplate='<b>%{x}</b><br>AST: %{y}<br>Team: %{customdata}<extra></extra>'))
+            if "team" in top_10.columns:
+                fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"], 
+                                      customdata=top_10["team"],
+                                      hovertemplate='<b>%{x}</b><br>PTS: %{y}<br>Team: %{customdata}<extra></extra>'))
+                fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"],
+                                      customdata=top_10["team"],
+                                      hovertemplate='<b>%{x}</b><br>REB: %{y}<br>Team: %{customdata}<extra></extra>'))
+                fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"],
+                                      customdata=top_10["team"],
+                                      hovertemplate='<b>%{x}</b><br>AST: %{y}<br>Team: %{customdata}<extra></extra>'))
+            else:
+                fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"]))
+                fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"]))
+                fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"]))
             
             fig2.update_layout(
                 title="Top 10 Players: PTS, REB, AST Comparison",
@@ -250,12 +256,21 @@ def display_player_rankings(players_df, calculator, projector):
             st.plotly_chart(fig2, use_container_width=True)
         
         with col2:
+            top_30 = top_players.head(30).copy()
+            hover_cols = []
+            if "first_name" in top_30.columns:
+                hover_cols.append("first_name")
+            if "last_name" in top_30.columns:
+                hover_cols.append("last_name")
+            if "team" in top_30.columns:
+                hover_cols.append("team")
+            
             fig3 = px.scatter(
-                top_players.head(30),
+                top_30,
                 x="pts",
                 y="efficiency",
-                size="games_played",
-                hover_data=["first_name", "last_name", "team"],
+                size="games_played" if "games_played" in top_30.columns else None,
+                hover_data=hover_cols if hover_cols else None,
                 title="Scoring vs Efficiency (Top 30 Players)",
                 labels={"pts": "Points Per Game", "efficiency": "Efficiency Rating"}
             )
