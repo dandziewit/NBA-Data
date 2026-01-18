@@ -67,6 +67,12 @@ def load_nba_data():
         # Fetch player data
         players_df = fetcher.get_complete_player_data()
         
+        # Debug: Print columns to verify team column exists
+        if not players_df.empty:
+            print(f"Player DataFrame columns: {players_df.columns.tolist()}")
+            if "team" in players_df.columns:
+                print(f"Sample teams: {players_df['team'].head().tolist()}")
+        
         # Fetch team stats
         team_stats_df = fetcher.fetch_team_stats()
     
@@ -84,13 +90,17 @@ def format_player_name(row):
 def format_team_name(row):
     """Format team name from DataFrame row"""
     try:
-        # Access team directly from pandas Series
-        if "team" in row.index:
-            team = row["team"]
-            if pd.notna(team) and str(team).strip():
-                return str(team).strip()
+        # Access team directly from pandas Series using bracket notation
+        team = row["team"] if "team" in row.index else None
+        
+        # Check if team exists and is not null/empty
+        if team is not None and pd.notna(team):
+            team_str = str(team).strip()
+            if team_str and team_str != "" and team_str.lower() != "nan":
+                return team_str
+        
         return "Unknown"
-    except:
+    except Exception as e:
         return "Unknown"
 
 def display_player_rankings(players_df, calculator, projector):
@@ -160,11 +170,17 @@ def display_player_rankings(players_df, calculator, projector):
     with tab1:
         # Prepare display dataframe
         display_df = top_players.copy()
+        
+        # Debug: Check if team column exists
+        if "team" not in display_df.columns:
+            st.warning("⚠️ Team column missing from data. Showing 'Unknown' for all teams.")
+        
+        # Format player and team names
         display_df["Player"] = display_df.apply(format_player_name, axis=1)
-        display_df["Team"] = display_df.apply(format_team_name, axis=1)
+        display_df["Team_Display"] = display_df.apply(format_team_name, axis=1)
         
         # Add shooting stats columns if available
-        display_columns = ["rank", "Player", "Team", "pts", "reb", "ast", "stl", "blk"]
+        display_columns = ["rank", "Player", "Team_Display", "pts", "reb", "ast", "stl", "blk"]
         
         # Add 3-point stats if available
         if "FG3M" in display_df.columns:
