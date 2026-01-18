@@ -25,13 +25,16 @@ class NBAStatsCalculator:
             players_df: DataFrame with player season averages
             
         Returns:
-            DataFrame with efficiency rating added
+            DataFrame with efficiency rating added (all original columns preserved)
         """
         if players_df.empty:
             return players_df
         
         # Make a copy to avoid modifying original
         df = players_df.copy()
+        
+        # Debug: Verify team column exists
+        print(f"[calculate_player_efficiency] Input has 'team': {'team' in df.columns}")
         
         # Ensure required columns exist with defaults
         for col in ["pts", "reb", "ast", "stl", "blk", "games_played"]:
@@ -49,7 +52,10 @@ class NBAStatsCalculator:
         )
         
         # Filter out players with very few games (less than 5)
+        # Important: This returns a filtered copy that preserves ALL columns
         df = df[df["games_played"].fillna(0) >= 5].copy()
+        
+        print(f"[calculate_player_efficiency] Output has 'team': {'team' in df.columns}")
         
         return df
     
@@ -62,10 +68,15 @@ class NBAStatsCalculator:
             top_n: Number of top players to return
             
         Returns:
-            DataFrame with top N players sorted by efficiency
+            DataFrame with top N players sorted by efficiency (all columns preserved)
         """
         if players_df.empty:
             return players_df
+        
+        # Debug: Verify team column exists
+        print(f"[rank_players] Input has 'team': {'team' in players_df.columns}")
+        if 'team' in players_df.columns:
+            print(f"[rank_players] Input team sample: {players_df['team'].head(3).tolist()}")
         
         # Calculate efficiency if not already done
         if "efficiency" not in players_df.columns:
@@ -77,17 +88,13 @@ class NBAStatsCalculator:
         # Add rank column
         ranked_df["rank"] = range(1, len(ranked_df) + 1)
         
-        # Select relevant columns
-        columns_to_keep = [
-            "rank", "first_name", "last_name", "team", 
-            "pts", "reb", "ast", "stl", "blk", 
-            "efficiency", "games_played", "min"
-        ]
+        # Return ALL columns instead of selecting specific ones
+        # This ensures team and any other columns are preserved
+        print(f"[rank_players] Output has 'team': {'team' in ranked_df.columns}")
+        if 'team' in ranked_df.columns:
+            print(f"[rank_players] Output team sample: {ranked_df['team'].head(3).tolist()}")
         
-        # Only keep columns that exist
-        columns_to_keep = [col for col in columns_to_keep if col in ranked_df.columns]
-        
-        return ranked_df[columns_to_keep]
+        return ranked_df
     
     def calculate_team_standings(self, team_stats_df: pd.DataFrame) -> pd.DataFrame:
         """

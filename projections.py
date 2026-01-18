@@ -29,12 +29,15 @@ class NBAProjections:
             players_df: DataFrame with player season averages
             
         Returns:
-            DataFrame with projected season totals added
+            DataFrame with projected season totals added (all original columns preserved)
         """
         if players_df.empty:
             return players_df
         
         df = players_df.copy()
+        
+        # Debug: Verify team column exists
+        print(f"[project_player_season_stats] Input has 'team': {'team' in df.columns}")
         
         # Ensure games_played column exists
         if "games_played" not in df.columns:
@@ -69,6 +72,8 @@ class NBAProjections:
         # Project efficiency for full season
         if "efficiency" in df.columns:
             df["projected_season_efficiency"] = df["efficiency"] * df["projected_total_games"]
+        
+        print(f"[project_player_season_stats] Output has 'team': {'team' in df.columns}")
         
         return df
     
@@ -201,12 +206,15 @@ class NBAProjections:
             players_df: DataFrame with player stats
             
         Returns:
-            DataFrame with MVP score added
+            DataFrame with MVP score added (all original columns preserved)
         """
         if players_df.empty:
             return players_df
         
         df = players_df.copy()
+        
+        # Debug: Verify team column exists
+        print(f"[calculate_mvp_score] Input has 'team': {'team' in df.columns}")
         
         # Simple MVP score: efficiency + bonus for being on winning team
         # (In reality, MVP considers many more factors)
@@ -217,5 +225,7 @@ class NBAProjections:
             max_eff = df["efficiency"].max()
             if max_eff > 0:
                 df["mvp_score"] = (df["efficiency"] / max_eff * 100).round(1)
+        
+        print(f"[calculate_mvp_score] Output has 'team': {'team' in df.columns}")
         
         return df
