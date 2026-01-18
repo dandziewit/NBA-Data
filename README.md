@@ -2,12 +2,15 @@
 
 An interactive web-based NBA 2025-2026 season analyzer built with Streamlit.
 
+## 🚀 Live App
+
+**[Open the app in your browser](https://nba-data-az48in6pu8ndseqnnyrnj7.streamlit.app/)** - No installation needed!
+
 ## Features
 
 - 📊 Player rankings and statistics
 - 📈 Performance visualizations
 - 🎯 Three-point shooting analytics
-- 🏀 Team standings and projections
 - 📉 Statistical comparisons
 - 🏆 MVP scoring calculations
 
