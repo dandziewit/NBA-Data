@@ -33,21 +33,12 @@ class NBAStatsCalculator:
         # Make a copy to avoid modifying original
         df = players_df.copy()
         
-        # Debug: Verify team column exists and check type
-        has_team = 'team' in df.columns
-        team_backup = None  # Initialize backup
-        print(f"[calculate_player_efficiency] Input has 'team': {has_team}")
-        if has_team:
-            team_backup = df['team'].copy()  # Backup team column
-            print(f"  Input team type: {df['team'].dtype}")
-            print(f"  Input team sample: {df['team'].head(3).tolist()}")
-        
         # Ensure required columns exist with defaults
         for col in ["pts", "reb", "ast", "stl", "blk", "games_played"]:
             if col not in df.columns:
                 df[col] = 0
         
-        # Calculate efficiency (DO NOT assign to 'team' column)
+        # Calculate efficiency
         df["efficiency"] = (
             df["pts"].fillna(0) + 
             df["reb"].fillna(0) + 
@@ -58,18 +49,6 @@ class NBAStatsCalculator:
         
         # Filter out players with very few games (less than 5)
         df = df[df["games_played"].fillna(0) >= 5].copy()
-        
-        # Verify team column wasn't accidentally overwritten
-        if has_team and team_backup is not None:
-            if 'team' not in df.columns:
-                print("  ❌ WARNING: team column was removed during processing! Restoring...")
-                df['team'] = team_backup[df.index]
-            elif df['team'].dtype != team_backup.dtype:
-                print(f"  ❌ WARNING: team column type changed from {team_backup.dtype} to {df['team'].dtype}! Restoring...")
-                df['team'] = team_backup[df.index]
-            else:
-                print(f"  ✓ team column preserved correctly")
-                print(f"  Output team sample: {df['team'].head(3).tolist()}")
         
         return df
     

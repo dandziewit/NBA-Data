@@ -55,45 +55,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# NBA Team ID to Abbreviation Mapping (all 30 teams)
-TEAM_ID_MAP = {
-    1610612737: 'ATL',  # Atlanta Hawks
-    1610612738: 'BOS',  # Boston Celtics
-    1610612751: 'BKN',  # Brooklyn Nets
-    1610612766: 'CHA',  # Charlotte Hornets
-    1610612741: 'CHI',  # Chicago Bulls
-    1610612739: 'CLE',  # Cleveland Cavaliers
-    1610612742: 'DAL',  # Dallas Mavericks
-    1610612743: 'DEN',  # Denver Nuggets
-    1610612765: 'DET',  # Detroit Pistons
-    1610612744: 'GSW',  # Golden State Warriors
-    1610612745: 'HOU',  # Houston Rockets
-    1610612754: 'IND',  # Indiana Pacers
-    1610612746: 'LAC',  # LA Clippers
-    1610612747: 'LAL',  # Los Angeles Lakers
-    1610612763: 'MEM',  # Memphis Grizzlies
-    1610612748: 'MIA',  # Miami Heat
-    1610612749: 'MIL',  # Milwaukee Bucks
-    1610612750: 'MIN',  # Minnesota Timberwolves
-    1610612740: 'NOP',  # New Orleans Pelicans
-    1610612752: 'NYK',  # New York Knicks
-    1610612760: 'OKC',  # Oklahoma City Thunder
-    1610612753: 'ORL',  # Orlando Magic
-    1610612755: 'PHI',  # Philadelphia 76ers
-    1610612756: 'PHX',  # Phoenix Suns
-    1610612757: 'POR',  # Portland Trail Blazers
-    1610612758: 'SAC',  # Sacramento Kings
-    1610612759: 'SAS',  # San Antonio Spurs
-    1610612761: 'TOR',  # Toronto Raptors
-    1610612762: 'UTA',  # Utah Jazz
-    1610612764: 'WAS',  # Washington Wizards
-}
-
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_nba_data():
     """
     Load NBA data from API with caching
-    Returns tuple of (players_df, team_stats_df)
+    Returns players_df
     """
     fetcher = NBADataFetcher()
     
@@ -101,63 +67,10 @@ def load_nba_data():
         # Fetch player data
         players_df = fetcher.get_complete_player_data()
         
-        # Debug: Print detailed column information
         if not players_df.empty:
-            print("\n" + "="*60)
-            print("=== RAW PLAYER DATA ===" )
-            print("="*60)
-            print(f"Total players: {len(players_df)}")
-            print(f"All columns: {players_df.columns.tolist()}")
-            print(f"Column dtypes: {players_df.dtypes.to_dict()}")
-            
-            # Check for team column variations
-            team_cols = [col for col in players_df.columns if 'team' in col.lower()]
-            print(f"Team-related columns found: {team_cols}")
-            
-            # Ensure team column exists and is properly formatted
-            if "team" in players_df.columns:
-                print(f"✓ 'team' column exists")
-                print(f"  Data type: {players_df['team'].dtype}")
-                print(f"  Sample raw values: {players_df['team'].head(10).tolist()}")
-                
-                # Check if team column contains numeric IDs (IDs are > 1000000)
-                try:
-                    numeric_teams = pd.to_numeric(players_df["team"], errors='coerce')
-                    has_numeric_ids = (numeric_teams > 1000000).any()
-                    
-                    if has_numeric_ids:
-                        print(f"  ⚠ Detected numeric team IDs, applying mapping...")
-                        # Map numeric IDs to abbreviations
-                        players_df["team"] = numeric_teams.map(TEAM_ID_MAP).fillna("Unknown")
-                        print(f"  After ID mapping: {players_df['team'].head(10).tolist()}")
-                    else:
-                        # Clean and convert to string, preserving actual team names
-                        players_df["team"] = players_df["team"].fillna("Unknown").astype(str).str.strip()
-                        print(f"  After cleanup: {players_df['team'].head(10).tolist()}")
-                except Exception as e:
-                    print(f"  ⚠ Error processing teams: {e}")
-                    players_df["team"] = players_df["team"].fillna("Unknown").astype(str).str.strip()
-                
-                print(f"  Unique teams: {sorted(players_df['team'].unique().tolist())}")
-                print(f"  Missing/Unknown: {(players_df['team'] == 'Unknown').sum()}")
-                
-            elif team_cols:
-                # Try to use alternative team column
-                alt_col = team_cols[0]
-                print(f"⚠ 'team' column not found, using '{alt_col}' instead")
-                players_df["team"] = players_df[alt_col].fillna("Unknown").astype(str).str.strip()
-                print(f"  Sample values: {players_df['team'].head(10).tolist()}")
-            else:
-                # No team column found at all
-                print("❌ No team-related column found! Creating default 'Unknown' values")
-                players_df["team"] = "Unknown"
-            
-            print("="*60)
-        
-        # Fetch team stats
-        team_stats_df = fetcher.fetch_team_stats()
+            print(f"\nFetched {len(players_df)} players with {len(players_df.columns)} columns")
     
-    return players_df, team_stats_df
+    return players_df
 
 def format_player_name(row):
     """Format player name from DataFrame row"""
@@ -168,30 +81,9 @@ def format_player_name(row):
     except:
         return "Unknown"
 
-def format_team_name(row):
-    """Format team name from DataFrame row"""
-    try:
-        # Access team directly from pandas Series using bracket notation
-        team = row["team"] if "team" in row.index else None
-        
-        # Check if team exists and is not null/empty
-        if team is not None and pd.notna(team):
-            team_str = str(team).strip()
-            if team_str and team_str != "" and team_str.lower() != "nan":
-                return team_str
-        
-        return "Unknown"
-    except Exception as e:
-        return "Unknown"
-
 def display_player_rankings(players_df, calculator, projector):
     """Display player rankings section"""
     st.markdown('<p class="sub-header">🏆 Top Players Rankings</p>', unsafe_allow_html=True)
-    
-    # Debug initial state
-    print("\n=== DISPLAY_PLAYER_RANKINGS START ===")
-    print(f"Input DataFrame columns: {players_df.columns.tolist()}")
-    print(f"Has 'team' column: {'team' in players_df.columns}")
     
     # Check if we have any data at all
     if players_df.empty:
@@ -207,14 +99,6 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Calculate efficiency and rankings
     players_with_efficiency = calculator.calculate_player_efficiency(players_df)
-    print("\n[After calculate_player_efficiency]")
-    print(f"  Has 'team': {'team' in players_with_efficiency.columns}")
-    if "team" in players_with_efficiency.columns:
-        print(f"  Type: {players_with_efficiency['team'].dtype}")
-        print(f"  Sample: {players_with_efficiency['team'].head(5).tolist()}")
-        # Check if team got overwritten with numbers
-        if players_with_efficiency['team'].dtype in ['int64', 'float64']:
-            print("  ❌ ERROR: team column is numeric! It was overwritten!")
     
     # Filter by games played if column exists
     if "games_played" in players_with_efficiency.columns:
@@ -224,32 +108,10 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Add projections
     players_with_projections = projector.project_player_season_stats(players_with_efficiency)
-    print("\n[After project_player_season_stats]")
-    print(f"  Has 'team': {'team' in players_with_projections.columns}")
-    if "team" in players_with_projections.columns:
-        print(f"  Type: {players_with_projections['team'].dtype}")
-        print(f"  Sample: {players_with_projections['team'].head(5).tolist()}")
-    
     players_with_projections = projector.calculate_mvp_score(players_with_projections)
-    print("\n[After calculate_mvp_score]")
-    print(f"  Has 'team': {'team' in players_with_projections.columns}")
-    if "team" in players_with_projections.columns:
-        print(f"  Type: {players_with_projections['team'].dtype}")
-        print(f"  Sample: {players_with_projections['team'].head(5).tolist()}")
     
     # Get top players
     top_players = calculator.rank_players(players_with_projections, top_n=top_n_players)
-    print("\n[After rank_players]")
-    print(f"  Has 'team': {'team' in top_players.columns}")
-    if "team" in top_players.columns:
-        print(f"  Type: {top_players['team'].dtype}")
-        print(f"  Sample teams: {top_players['team'].head(10).tolist()}")
-        print(f"  Unique teams: {top_players['team'].nunique()}")
-        # Final check for numeric overwriting
-        if top_players['team'].dtype in ['int64', 'float64']:
-            print("  ❌ CRITICAL ERROR: team column contains numbers, not team names!")
-        else:
-            print("  ✓ team column contains strings")
     
     if top_players.empty:
         st.warning("No player statistics available yet for the 2025-2026 season.")
@@ -287,32 +149,11 @@ def display_player_rankings(players_df, calculator, projector):
         # Prepare display dataframe
         display_df = top_players.copy()
         
-        # Debug: Verify team column before display processing
-        print("\n[Before creating display table]")
-        print(f"  Columns: {display_df.columns.tolist()}")
-        print(f"  Has 'team': {'team' in display_df.columns}")
-        if "team" in display_df.columns:
-            print(f"  Team type: {display_df['team'].dtype}")
-            print(f"  Team sample: {display_df['team'].head(5).tolist()}")
-        
-        # Check if team column exists and show warning if not
-        if "team" not in display_df.columns:
-            st.warning("⚠️ Team column missing from data. Showing 'Unknown' for all teams.")
-            display_df["team"] = "Unknown"
-        
-        # Format player and team names
+        # Format player names
         display_df["Player"] = display_df.apply(format_player_name, axis=1)
         
-        # Create Team_Display column from the team column (not overwriting it)
-        display_df["Team_Display"] = display_df.apply(format_team_name, axis=1)
-        
-        # Verify Team_Display was created correctly
-        print(f"\n[After formatting]")
-        print(f"  Team_Display sample: {display_df['Team_Display'].head(10).tolist()}")
-        print(f"  Unique Team_Display values: {display_df['Team_Display'].nunique()}")
-        
         # Add shooting stats columns if available
-        display_columns = ["rank", "Player", "Team_Display", "pts", "reb", "ast", "stl", "blk"]
+        display_columns = ["rank", "Player", "pts", "reb", "ast", "stl", "blk"]
         
         # Add 3-point stats if available
         if "FG3M" in display_df.columns:
@@ -329,7 +170,7 @@ def display_player_rankings(players_df, calculator, projector):
         display_df = display_df[display_columns]
         
         # Rename columns for display
-        col_names = ["Rank", "Player", "Team", "PTS", "REB", "AST", "STL", "BLK"]
+        col_names = ["Rank", "Player", "PTS", "REB", "AST", "STL", "BLK"]
         
         if "FG3M" in display_columns:
             col_names.append("3PM")
@@ -358,7 +199,6 @@ def display_player_rankings(players_df, calculator, projector):
         # Top 15 players efficiency bar chart
         top_15 = top_players.head(15).copy()
         top_15["Player"] = top_15.apply(format_player_name, axis=1)
-        top_15["Team"] = top_15["team"] if "team" in top_15.columns else "N/A"
         
         fig = px.bar(
             top_15,
@@ -368,8 +208,7 @@ def display_player_rankings(players_df, calculator, projector):
             title=f"Top 15 Players by Efficiency Rating",
             labels={"efficiency": "Efficiency Rating", "Player": ""},
             color="efficiency",
-            color_continuous_scale="Blues",
-            hover_data={"Team": True, "efficiency": ":.2f"} if "team" in top_15.columns else None
+            color_continuous_scale="Blues"
         )
         fig.update_layout(height=500, showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
@@ -382,20 +221,9 @@ def display_player_rankings(players_df, calculator, projector):
             top_10["Player"] = top_10.apply(format_player_name, axis=1)
             
             fig2 = go.Figure()
-            if "team" in top_10.columns:
-                fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"], 
-                                      customdata=top_10["team"],
-                                      hovertemplate='<b>%{x}</b><br>PTS: %{y}<br>Team: %{customdata}<extra></extra>'))
-                fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"],
-                                      customdata=top_10["team"],
-                                      hovertemplate='<b>%{x}</b><br>REB: %{y}<br>Team: %{customdata}<extra></extra>'))
-                fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"],
-                                      customdata=top_10["team"],
-                                      hovertemplate='<b>%{x}</b><br>AST: %{y}<br>Team: %{customdata}<extra></extra>'))
-            else:
-                fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"]))
-                fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"]))
-                fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"]))
+            fig2.add_trace(go.Bar(name="PTS", x=top_10["Player"], y=top_10["pts"]))
+            fig2.add_trace(go.Bar(name="REB", x=top_10["Player"], y=top_10["reb"]))
+            fig2.add_trace(go.Bar(name="AST", x=top_10["Player"], y=top_10["ast"]))
             
             fig2.update_layout(
                 title="Top 10 Players: PTS, REB, AST Comparison",
@@ -412,8 +240,6 @@ def display_player_rankings(players_df, calculator, projector):
                 hover_cols.append("first_name")
             if "last_name" in top_30.columns:
                 hover_cols.append("last_name")
-            if "team" in top_30.columns:
-                hover_cols.append("team")
             
             fig3 = px.scatter(
                 top_30,
@@ -469,188 +295,12 @@ def display_player_rankings(players_df, calculator, projector):
                 fig_3pct.update_layout(height=400, xaxis_tickangle=-45, showlegend=False)
                 st.plotly_chart(fig_3pct, use_container_width=True)
 
-def display_team_standings(team_stats_df, calculator, projector):
-    """Display team standings section"""
-    st.markdown('<p class="sub-header">🏀 Team Standings & Rankings</p>', unsafe_allow_html=True)
-    
-    if team_stats_df.empty:
-        st.warning("No team data available for the 2025-2026 season yet.")
-        return
-    
-    # Calculate standings and projections
-    standings_df = calculator.calculate_team_standings(team_stats_df)
-    projected_df = projector.project_team_season_record(standings_df)
-    playoff_df = projector.get_playoff_probability(projected_df)
-    
-    # Get conference standings
-    east_df, west_df = calculator.get_conference_standings(team_stats_df)
-    
-    # Sidebar filter
-    with st.sidebar:
-        st.markdown("### Team Filters")
-        conference_filter = st.radio("Conference", ["All", "Eastern", "Western"], index=0)
-    
-    # Overall metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total Teams", len(standings_df))
-    
-    with col2:
-        if not standings_df.empty:
-            top_team = standings_df.iloc[0]
-            st.metric("Best Record", f"{top_team['team_name']}: {top_team['wins']}-{top_team['losses']}")
-    
-    with col3:
-        if not standings_df.empty:
-            highest_ppg = standings_df.nlargest(1, "ppg").iloc[0]
-            st.metric("Highest Scoring", f"{highest_ppg['team_name']}: {highest_ppg['ppg']:.1f} PPG")
-    
-    with col4:
-        if not standings_df.empty:
-            best_diff = standings_df.nlargest(1, "point_differential").iloc[0]
-            st.metric("Best Point Diff", f"{best_diff['team_name']}: +{best_diff['point_differential']:.1f}")
-    
-    # Tabs for different views
-    tab1, tab2, tab3, tab4 = st.tabs(["📋 Overall Standings", "🌐 Conference Standings", 
-                                       "📈 Team Stats", "🎯 Projections"])
-    
-    with tab1:
-        # Filter by conference
-        if conference_filter == "Eastern":
-            display_standings = standings_df[standings_df["conference"] == "East"]
-        elif conference_filter == "Western":
-            display_standings = standings_df[standings_df["conference"] == "West"]
-        else:
-            display_standings = standings_df
-        
-        # Prepare display
-        display_cols = ["overall_rank", "team_name", "conference", "wins", "losses", 
-                       "win_pct", "point_differential", "ppg", "opp_ppg"]
-        display_cols = [col for col in display_cols if col in display_standings.columns]
-        
-        display_df = display_standings[display_cols].copy()
-        display_df.columns = ["Rank", "Team", "Conf", "W", "L", "Win%", 
-                             "Diff", "PPG", "Opp PPG"]
-        display_df["Win%"] = (display_df["Win%"] * 100).round(1)
-        
-        st.dataframe(display_df, hide_index=True, use_container_width=True, height=600)
-    
-    with tab2:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### Eastern Conference")
-            if not east_df.empty:
-                east_display = east_df[[
-                    "conf_rank", "team_name", "wins", "losses", "win_pct", "point_differential"
-                ]].copy()
-                east_display.columns = ["Rank", "Team", "W", "L", "Win%", "Diff"]
-                east_display["Win%"] = (east_display["Win%"] * 100).round(1)
-                st.dataframe(east_display, hide_index=True, use_container_width=True)
-            else:
-                st.info("No Eastern Conference data available yet.")
-        
-        with col2:
-            st.markdown("#### Western Conference")
-            if not west_df.empty:
-                west_display = west_df[[
-                    "conf_rank", "team_name", "wins", "losses", "win_pct", "point_differential"
-                ]].copy()
-                west_display.columns = ["Rank", "Team", "W", "L", "Win%", "Diff"]
-                west_display["Win%"] = (west_display["Win%"] * 100).round(1)
-                st.dataframe(west_display, hide_index=True, use_container_width=True)
-            else:
-                st.info("No Western Conference data available yet.")
-    
-    with tab3:
-        # Visualizations
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig = px.bar(
-                standings_df.head(15),
-                x="team_name",
-                y="wins",
-                title="Top 15 Teams by Wins",
-                labels={"wins": "Wins", "team_name": "Team"},
-                color="wins",
-                color_continuous_scale="Greens"
-            )
-            fig.update_layout(height=400, xaxis_tickangle=-45, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig2 = px.scatter(
-                standings_df,
-                x="ppg",
-                y="point_differential",
-                size="wins",
-                hover_data=["team_name"],
-                title="Points Per Game vs Point Differential",
-                labels={"ppg": "Points Per Game", "point_differential": "Point Differential"}
-            )
-            fig2.update_layout(height=400)
-            st.plotly_chart(fig2, use_container_width=True)
-        
-        # Point differential chart
-        fig3 = px.bar(
-            standings_df.head(20),
-            x="team_name",
-            y="point_differential",
-            title="Point Differential - Top 20 Teams",
-            labels={"point_differential": "Point Differential", "team_name": "Team"},
-            color="point_differential",
-            color_continuous_scale="RdYlGn"
-        )
-        fig3.update_layout(height=400, xaxis_tickangle=-45, showlegend=False)
-        st.plotly_chart(fig3, use_container_width=True)
-    
-    with tab4:
-        if "projected_total_wins" in playoff_df.columns:
-            st.markdown("#### Season Projections & Playoff Outlook")
-            
-            proj_display = playoff_df[[
-                "team_name", "conference", "wins", "losses",
-                "projected_total_wins", "projected_total_losses",
-                "playoff_probability", "conf_rank"
-            ]].copy()
-            
-            proj_display.columns = [
-                "Team", "Conf", "Current W", "Current L",
-                "Proj. W", "Proj. L", "Playoff %", "Conf Rank"
-            ]
-            
-            proj_display = proj_display.sort_values(["Conf", "Playoff %"], ascending=[True, False])
-            
-            st.dataframe(proj_display, hide_index=True, use_container_width=True, height=600)
-            
-            # Playoff probability visualization
-            playoff_teams = playoff_df[playoff_df["playoff_probability"] >= 50].sort_values(
-                "playoff_probability", ascending=False
-            )
-            
-            if not playoff_teams.empty:
-                fig = px.bar(
-                    playoff_teams,
-                    x="team_name",
-                    y="playoff_probability",
-                    color="conference",
-                    title="Teams with 50%+ Playoff Probability",
-                    labels={"playoff_probability": "Playoff Probability (%)", "team_name": "Team"},
-                    color_discrete_map={"East": "#1E3A8A", "West": "#DC2626"}
-                )
-                fig.update_layout(height=400, xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Projection data will be available once more games are played.")
-
 def main():
     """Main application function"""
     
     # Load data first to detect season
     try:
-        players_df, team_stats_df = load_nba_data()
+        players_df = load_nba_data()
         
         # Initialize calculators
         calculator = NBAStatsCalculator()
@@ -689,14 +339,8 @@ def main():
             st.cache_data.clear()
             st.rerun()
     
-    # Create main tabs
-    main_tab1, main_tab2 = st.tabs(["👤 Player Analysis", "🏆 Team Analysis"])
-    
-    with main_tab1:
-        display_player_rankings(players_df, calculator, projector)
-    
-    with main_tab2:
-        display_team_standings(team_stats_df, calculator, projector)
+    # Display player analysis
+    display_player_rankings(players_df, calculator, projector)
     
     # Footer
     st.markdown("---")

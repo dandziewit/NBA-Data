@@ -36,9 +36,6 @@ class NBAProjections:
         
         df = players_df.copy()
         
-        # Debug: Verify team column exists
-        print(f"[project_player_season_stats] Input has 'team': {'team' in df.columns}")
-        
         # Ensure games_played column exists
         if "games_played" not in df.columns:
             df["games_played"] = 0
@@ -72,8 +69,6 @@ class NBAProjections:
         # Project efficiency for full season
         if "efficiency" in df.columns:
             df["projected_season_efficiency"] = df["efficiency"] * df["projected_total_games"]
-        
-        print(f"[project_player_season_stats] Output has 'team': {'team' in df.columns}")
         
         return df
     
