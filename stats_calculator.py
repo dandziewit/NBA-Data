@@ -33,16 +33,21 @@ class NBAStatsCalculator:
         # Make a copy to avoid modifying original
         df = players_df.copy()
         
-        # Debug: Verify team column exists
-        print(f"[calculate_player_efficiency] Input has 'team': {'team' in df.columns}")
+        # Debug: Verify team column exists and check type
+        has_team = 'team' in df.columns
+        team_backup = None  # Initialize backup
+        print(f"[calculate_player_efficiency] Input has 'team': {has_team}")
+        if has_team:
+            team_backup = df['team'].copy()  # Backup team column
+            print(f"  Input team type: {df['team'].dtype}")
+            print(f"  Input team sample: {df['team'].head(3).tolist()}")
         
         # Ensure required columns exist with defaults
         for col in ["pts", "reb", "ast", "stl", "blk", "games_played"]:
             if col not in df.columns:
                 df[col] = 0
         
-        # Calculate efficiency
-        # Note: API already provides per-game averages, so games_played is for context
+        # Calculate efficiency (DO NOT assign to 'team' column)
         df["efficiency"] = (
             df["pts"].fillna(0) + 
             df["reb"].fillna(0) + 
@@ -52,10 +57,19 @@ class NBAStatsCalculator:
         )
         
         # Filter out players with very few games (less than 5)
-        # Important: This returns a filtered copy that preserves ALL columns
         df = df[df["games_played"].fillna(0) >= 5].copy()
         
-        print(f"[calculate_player_efficiency] Output has 'team': {'team' in df.columns}")
+        # Verify team column wasn't accidentally overwritten
+        if has_team and team_backup is not None:
+            if 'team' not in df.columns:
+                print("  ❌ WARNING: team column was removed during processing! Restoring...")
+                df['team'] = team_backup[df.index]
+            elif df['team'].dtype != team_backup.dtype:
+                print(f"  ❌ WARNING: team column type changed from {team_backup.dtype} to {df['team'].dtype}! Restoring...")
+                df['team'] = team_backup[df.index]
+            else:
+                print(f"  ✓ team column preserved correctly")
+                print(f"  Output team sample: {df['team'].head(3).tolist()}")
         
         return df
     
@@ -73,26 +87,39 @@ class NBAStatsCalculator:
         if players_df.empty:
             return players_df
         
-        # Debug: Verify team column exists
-        print(f"[rank_players] Input has 'team': {'team' in players_df.columns}")
-        if 'team' in players_df.columns:
-            print(f"[rank_players] Input team sample: {players_df['team'].head(3).tolist()}")
+        # Debug: Verify team column exists and check type
+        has_team = 'team' in players_df.columns
+        team_backup = None  # Initialize backup
+        print(f"[rank_players] Input has 'team': {has_team}")
+        if has_team:
+            team_backup = players_df['team'].copy()  # Backup entire team column
+            print(f"  Input team type: {players_df['team'].dtype}")
+            print(f"  Input team sample: {players_df['team'].head(3).tolist()}")
         
         # Calculate efficiency if not already done
         if "efficiency" not in players_df.columns:
             players_df = self.calculate_player_efficiency(players_df)
         
-        # Sort by efficiency
+        # Sort by efficiency and take top N
         ranked_df = players_df.sort_values("efficiency", ascending=False).head(top_n).copy()
         
-        # Add rank column
+        # Add rank column (DO NOT assign rank to 'team' column)
         ranked_df["rank"] = range(1, len(ranked_df) + 1)
         
-        # Return ALL columns instead of selecting specific ones
-        # This ensures team and any other columns are preserved
-        print(f"[rank_players] Output has 'team': {'team' in ranked_df.columns}")
-        if 'team' in ranked_df.columns:
-            print(f"[rank_players] Output team sample: {ranked_df['team'].head(3).tolist()}")
+        # Verify team column integrity
+        if has_team and team_backup is not None:
+            if 'team' not in ranked_df.columns:
+                print("  ❌ CRITICAL: team column missing after ranking! Restoring...")
+                # Restore from backup using index alignment
+                ranked_df['team'] = team_backup.loc[ranked_df.index]
+            elif ranked_df['team'].dtype in ['int64', 'float64']:
+                print(f"  ❌ CRITICAL: team column is numeric ({ranked_df['team'].dtype})! Restoring...")
+                ranked_df['team'] = team_backup.loc[ranked_df.index]
+            else:
+                print(f"  ✓ team column preserved correctly")
+                print(f"  Output team type: {ranked_df['team'].dtype}")
+                print(f"  Output team sample: {ranked_df['team'].head(5).tolist()}")
+                print(f"  Unique teams: {ranked_df['team'].nunique()}")
         
         return ranked_df
     

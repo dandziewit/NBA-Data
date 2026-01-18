@@ -69,26 +69,46 @@ def load_nba_data():
         
         # Debug: Print detailed column information
         if not players_df.empty:
-            print("\n=== RAW PLAYER DATA ===")
+            print("\n" + "="*60)
+            print("=== RAW PLAYER DATA ===" )
+            print("="*60)
             print(f"Total players: {len(players_df)}")
-            print(f"Columns: {players_df.columns.tolist()}")
+            print(f"All columns: {players_df.columns.tolist()}")
+            print(f"Column dtypes: {players_df.dtypes.to_dict()}")
             
             # Check for team column variations
             team_cols = [col for col in players_df.columns if 'team' in col.lower()]
-            print(f"Team-related columns: {team_cols}")
+            print(f"Team-related columns found: {team_cols}")
             
+            # Ensure team column exists and is properly formatted
             if "team" in players_df.columns:
-                # Clean up team column
-                players_df["team"] = players_df["team"].astype(str).str.strip()
-                print(f"Sample teams (first 5): {players_df['team'].head().tolist()}")
-                print(f"Unique teams: {players_df['team'].nunique()}")
-                print(f"Missing team values: {players_df['team'].isna().sum()}")
+                print(f"✓ 'team' column exists")
+                print(f"  Data type: {players_df['team'].dtype}")
+                print(f"  Sample raw values: {players_df['team'].head(10).tolist()}")
+                
+                # Store original team data before any conversion
+                original_team = players_df["team"].copy()
+                
+                # Clean and convert to string, preserving actual team names
+                players_df["team"] = players_df["team"].fillna("Unknown").astype(str).str.strip()
+                
+                # Verify conversion didn't introduce numeric issues
+                print(f"  After cleanup: {players_df['team'].head(10).tolist()}")
+                print(f"  Unique teams: {sorted(players_df['team'].unique().tolist())}")
+                print(f"  Missing/Unknown: {(players_df['team'] == 'Unknown').sum()}")
+                
+            elif team_cols:
+                # Try to use alternative team column
+                alt_col = team_cols[0]
+                print(f"⚠ 'team' column not found, using '{alt_col}' instead")
+                players_df["team"] = players_df[alt_col].fillna("Unknown").astype(str).str.strip()
+                print(f"  Sample values: {players_df['team'].head(10).tolist()}")
             else:
-                print("WARNING: 'team' column not found in player data!")
-                # Try to find and rename alternative team column
-                if team_cols:
-                    print(f"Found alternative team column: {team_cols[0]}")
-                    players_df["team"] = players_df[team_cols[0]].astype(str).str.strip()
+                # No team column found at all
+                print("❌ No team-related column found! Creating default 'Unknown' values")
+                players_df["team"] = "Unknown"
+            
+            print("="*60)
         
         # Fetch team stats
         team_stats_df = fetcher.fetch_team_stats()
@@ -143,8 +163,14 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Calculate efficiency and rankings
     players_with_efficiency = calculator.calculate_player_efficiency(players_df)
-    print(f"After calculate_player_efficiency, columns: {players_with_efficiency.columns.tolist()}")
-    print(f"Has 'team' column: {'team' in players_with_efficiency.columns}")
+    print("\n[After calculate_player_efficiency]")
+    print(f"  Has 'team': {'team' in players_with_efficiency.columns}")
+    if "team" in players_with_efficiency.columns:
+        print(f"  Type: {players_with_efficiency['team'].dtype}")
+        print(f"  Sample: {players_with_efficiency['team'].head(5).tolist()}")
+        # Check if team got overwritten with numbers
+        if players_with_efficiency['team'].dtype in ['int64', 'float64']:
+            print("  ❌ ERROR: team column is numeric! It was overwritten!")
     
     # Filter by games played if column exists
     if "games_played" in players_with_efficiency.columns:
@@ -154,19 +180,32 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Add projections
     players_with_projections = projector.project_player_season_stats(players_with_efficiency)
-    print(f"After project_player_season_stats, columns: {players_with_projections.columns.tolist()}")
-    print(f"Has 'team' column: {'team' in players_with_projections.columns}")
+    print("\n[After project_player_season_stats]")
+    print(f"  Has 'team': {'team' in players_with_projections.columns}")
+    if "team" in players_with_projections.columns:
+        print(f"  Type: {players_with_projections['team'].dtype}")
+        print(f"  Sample: {players_with_projections['team'].head(5).tolist()}")
     
     players_with_projections = projector.calculate_mvp_score(players_with_projections)
-    print(f"After calculate_mvp_score, columns: {players_with_projections.columns.tolist()}")
-    print(f"Has 'team' column: {'team' in players_with_projections.columns}")
+    print("\n[After calculate_mvp_score]")
+    print(f"  Has 'team': {'team' in players_with_projections.columns}")
+    if "team" in players_with_projections.columns:
+        print(f"  Type: {players_with_projections['team'].dtype}")
+        print(f"  Sample: {players_with_projections['team'].head(5).tolist()}")
     
     # Get top players
     top_players = calculator.rank_players(players_with_projections, top_n=top_n_players)
-    print(f"After rank_players, columns: {top_players.columns.tolist()}")
-    print(f"Has 'team' column: {'team' in top_players.columns}")
+    print("\n[After rank_players]")
+    print(f"  Has 'team': {'team' in top_players.columns}")
     if "team" in top_players.columns:
-        print(f"Sample teams in top_players: {top_players['team'].head().tolist()}")
+        print(f"  Type: {top_players['team'].dtype}")
+        print(f"  Sample teams: {top_players['team'].head(10).tolist()}")
+        print(f"  Unique teams: {top_players['team'].nunique()}")
+        # Final check for numeric overwriting
+        if top_players['team'].dtype in ['int64', 'float64']:
+            print("  ❌ CRITICAL ERROR: team column contains numbers, not team names!")
+        else:
+            print("  ✓ team column contains strings")
     
     if top_players.empty:
         st.warning("No player statistics available yet for the 2025-2026 season.")
@@ -204,13 +243,29 @@ def display_player_rankings(players_df, calculator, projector):
         # Prepare display dataframe
         display_df = top_players.copy()
         
-        # Debug: Check if team column exists
+        # Debug: Verify team column before display processing
+        print("\n[Before creating display table]")
+        print(f"  Columns: {display_df.columns.tolist()}")
+        print(f"  Has 'team': {'team' in display_df.columns}")
+        if "team" in display_df.columns:
+            print(f"  Team type: {display_df['team'].dtype}")
+            print(f"  Team sample: {display_df['team'].head(5).tolist()}")
+        
+        # Check if team column exists and show warning if not
         if "team" not in display_df.columns:
             st.warning("⚠️ Team column missing from data. Showing 'Unknown' for all teams.")
+            display_df["team"] = "Unknown"
         
         # Format player and team names
         display_df["Player"] = display_df.apply(format_player_name, axis=1)
+        
+        # Create Team_Display column from the team column (not overwriting it)
         display_df["Team_Display"] = display_df.apply(format_team_name, axis=1)
+        
+        # Verify Team_Display was created correctly
+        print(f"\n[After formatting]")
+        print(f"  Team_Display sample: {display_df['Team_Display'].head(10).tolist()}")
+        print(f"  Unique Team_Display values: {display_df['Team_Display'].nunique()}")
         
         # Add shooting stats columns if available
         display_columns = ["rank", "Player", "Team_Display", "pts", "reb", "ast", "stl", "blk"]
