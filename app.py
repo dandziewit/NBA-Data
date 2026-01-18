@@ -67,11 +67,28 @@ def load_nba_data():
         # Fetch player data
         players_df = fetcher.get_complete_player_data()
         
-        # Debug: Print columns to verify team column exists
+        # Debug: Print detailed column information
         if not players_df.empty:
-            print(f"Player DataFrame columns: {players_df.columns.tolist()}")
+            print("\n=== RAW PLAYER DATA ===")
+            print(f"Total players: {len(players_df)}")
+            print(f"Columns: {players_df.columns.tolist()}")
+            
+            # Check for team column variations
+            team_cols = [col for col in players_df.columns if 'team' in col.lower()]
+            print(f"Team-related columns: {team_cols}")
+            
             if "team" in players_df.columns:
-                print(f"Sample teams: {players_df['team'].head().tolist()}")
+                # Clean up team column
+                players_df["team"] = players_df["team"].astype(str).str.strip()
+                print(f"Sample teams (first 5): {players_df['team'].head().tolist()}")
+                print(f"Unique teams: {players_df['team'].nunique()}")
+                print(f"Missing team values: {players_df['team'].isna().sum()}")
+            else:
+                print("WARNING: 'team' column not found in player data!")
+                # Try to find and rename alternative team column
+                if team_cols:
+                    print(f"Found alternative team column: {team_cols[0]}")
+                    players_df["team"] = players_df[team_cols[0]].astype(str).str.strip()
         
         # Fetch team stats
         team_stats_df = fetcher.fetch_team_stats()
@@ -107,6 +124,11 @@ def display_player_rankings(players_df, calculator, projector):
     """Display player rankings section"""
     st.markdown('<p class="sub-header">🏆 Top Players Rankings</p>', unsafe_allow_html=True)
     
+    # Debug initial state
+    print("\n=== DISPLAY_PLAYER_RANKINGS START ===")
+    print(f"Input DataFrame columns: {players_df.columns.tolist()}")
+    print(f"Has 'team' column: {'team' in players_df.columns}")
+    
     # Check if we have any data at all
     if players_df.empty:
         st.warning("No player data available for the 2025-2026 season yet.")
@@ -121,6 +143,8 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Calculate efficiency and rankings
     players_with_efficiency = calculator.calculate_player_efficiency(players_df)
+    print(f"After calculate_player_efficiency, columns: {players_with_efficiency.columns.tolist()}")
+    print(f"Has 'team' column: {'team' in players_with_efficiency.columns}")
     
     # Filter by games played if column exists
     if "games_played" in players_with_efficiency.columns:
@@ -130,10 +154,19 @@ def display_player_rankings(players_df, calculator, projector):
     
     # Add projections
     players_with_projections = projector.project_player_season_stats(players_with_efficiency)
+    print(f"After project_player_season_stats, columns: {players_with_projections.columns.tolist()}")
+    print(f"Has 'team' column: {'team' in players_with_projections.columns}")
+    
     players_with_projections = projector.calculate_mvp_score(players_with_projections)
+    print(f"After calculate_mvp_score, columns: {players_with_projections.columns.tolist()}")
+    print(f"Has 'team' column: {'team' in players_with_projections.columns}")
     
     # Get top players
     top_players = calculator.rank_players(players_with_projections, top_n=top_n_players)
+    print(f"After rank_players, columns: {top_players.columns.tolist()}")
+    print(f"Has 'team' column: {'team' in top_players.columns}")
+    if "team" in top_players.columns:
+        print(f"Sample teams in top_players: {top_players['team'].head().tolist()}")
     
     if top_players.empty:
         st.warning("No player statistics available yet for the 2025-2026 season.")
