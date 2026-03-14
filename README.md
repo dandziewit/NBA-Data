@@ -223,7 +223,9 @@ License
 
 MIT License
 
+Author
 
+Daniel Dziewit GitHub: https://github.com/dandziewit
 
 
 
