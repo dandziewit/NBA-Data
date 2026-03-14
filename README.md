@@ -3,6 +3,15 @@ NBA Data Analyzer is an interactive analytics dashboard built with Python and St
 The application retrieves live league data, calculates derived statistics such as scoring efficiency and three-point performance, and presents the results through an interactive browser interface. The goal of the project is to demonstrate how a lightweight data pipeline can transform raw sports data into meaningful analytical insights.
 
 
+
+## Dashboard Preview
+
+### Player Statistics
+![Player Stats](stats.png)
+
+### Performance Charts
+![Performance Charts](charts.png)
+
 Live Demo
 
 You can try the live application here:
