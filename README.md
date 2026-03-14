@@ -1,7 +1,6 @@
 NBA Data Analyzer is an interactive analytics dashboard built with Python and Streamlit that explores NBA player performance through rankings, efficiency metrics, projections, and visualizations.
 
 The application retrieves live league data, calculates derived statistics such as scoring efficiency and three-point performance, and presents the results through an interactive browser interface. The goal of the project is to demonstrate how a lightweight data pipeline can transform raw sports data into meaningful analytical insights.
-"C:\Users\Damiel Dziewit\Pictures\Screenshots\Screenshot 2026-03-14 162019.png"
 
 Live Demo
 
@@ -214,7 +213,7 @@ License
 
 MIT License
 
-"C:\Users\Damiel Dziewit\Pictures\Screenshots\Screenshot 2026-03-14 162045.png"
+
 
 
 
