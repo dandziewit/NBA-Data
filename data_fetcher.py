@@ -8,6 +8,7 @@ from nba_api.stats.endpoints import leagueleaders, teamestimatedmetrics, leagues
 from nba_api.stats.static import teams
 import time
 from typing import Dict, List, Optional
+from config import API_RATE_LIMIT_DELAY
 
 class NBADataFetcher:
     """
@@ -56,7 +57,7 @@ class NBADataFetcher:
                 stat_category_abbreviation='PTS'
             )
             
-            time.sleep(1)  # Rate limiting
+            time.sleep(API_RATE_LIMIT_DELAY)  # Rate limiting
             
             df = leaders.get_data_frames()[0]
             
@@ -104,7 +105,7 @@ class NBADataFetcher:
                     per_mode48='PerGame'
                 )
                 
-                time.sleep(1)
+                time.sleep(API_RATE_LIMIT_DELAY)
                 df = leaders.get_data_frames()[0]
                 
                 if not df.empty:
@@ -157,7 +158,7 @@ class NBADataFetcher:
                 season_type='Regular Season'
             )
             
-            time.sleep(1)  # Rate limiting
+            time.sleep(API_RATE_LIMIT_DELAY)  # Rate limiting
             
             df = standings.get_data_frames()[0]
             

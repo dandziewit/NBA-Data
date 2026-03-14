@@ -6,6 +6,7 @@ Calculates player and team rankings, efficiency metrics, and standings
 import pandas as pd
 import numpy as np
 from typing import Tuple
+from config import MIN_GAMES_PLAYED_DEFAULT
 
 class NBAStatsCalculator:
     """
@@ -47,8 +48,8 @@ class NBAStatsCalculator:
             df["blk"].fillna(0)
         )
         
-        # Filter out players with very few games (less than 5)
-        df = df[df["games_played"].fillna(0) >= 5].copy()
+        # Filter out players with very few games
+        df = df[df["games_played"].fillna(0) >= MIN_GAMES_PLAYED_DEFAULT].copy()
         
         return df
     
@@ -179,7 +180,7 @@ class NBAStatsCalculator:
         
         # Filter players with minimum games played
         if "games_played" in players_df.columns:
-            df = players_df[players_df["games_played"].fillna(0) >= 5].copy()
+            df = players_df[players_df["games_played"].fillna(0) >= MIN_GAMES_PLAYED_DEFAULT].copy()
         else:
             df = players_df.copy()
         

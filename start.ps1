@@ -2,7 +2,7 @@
 # This script sets up and runs the NBA Analyzer application
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  NBA 2024-2025 Season Analyzer" -ForegroundColor Cyan
+Write-Host "  NBA 2025-2026 Season Analyzer" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 

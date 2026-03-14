@@ -6,13 +6,22 @@ Calculates season projections for players and teams based on current averages
 import pandas as pd
 import numpy as np
 from typing import Dict
+from config import (
+    TOTAL_SEASON_GAMES,
+    PLAYOFF_SPOTS_PER_CONFERENCE,
+    MILESTONE_POINTS,
+    MILESTONE_REBOUNDS,
+    MILESTONE_ASSISTS,
+    MILESTONE_STEALS,
+    MILESTONE_BLOCKS,
+)
 
 class NBAProjections:
     """
     Class for calculating NBA season projections
     """
     
-    def __init__(self, total_season_games: int = 82):
+    def __init__(self, total_season_games: int = TOTAL_SEASON_GAMES):
         """
         Initialize projections calculator
         
@@ -116,7 +125,7 @@ class NBAProjections:
         
         return df
     
-    def get_playoff_probability(self, team_stats_df: pd.DataFrame, top_n_per_conference: int = 8) -> pd.DataFrame:
+    def get_playoff_probability(self, team_stats_df: pd.DataFrame, top_n_per_conference: int = PLAYOFF_SPOTS_PER_CONFERENCE) -> pd.DataFrame:
         """
         Estimate playoff probability based on projected wins
         Simple estimation: teams ranked in top N per conference have higher probability
@@ -177,15 +186,18 @@ class NBAProjections:
         
         df = players_df.copy()
         
-        # Define milestones
-        milestones = {
-            "2000_pts_pace": df.get("projected_season_pts", 0) >= 2000,
-            "1500_pts_pace": df.get("projected_season_pts", 0) >= 1500,
-            "500_rebs_pace": df.get("projected_season_reb", 0) >= 500,
-            "500_asts_pace": df.get("projected_season_ast", 0) >= 500,
-            "100_stls_pace": df.get("projected_season_stl", 0) >= 100,
-            "100_blks_pace": df.get("projected_season_blk", 0) >= 100,
-        }
+        # Define milestones dynamically from config thresholds
+        milestones = {}
+        for threshold in MILESTONE_POINTS:
+            milestones[f"{threshold}_pts_pace"] = df.get("projected_season_pts", 0) >= threshold
+        for threshold in MILESTONE_REBOUNDS:
+            milestones[f"{threshold}_rebs_pace"] = df.get("projected_season_reb", 0) >= threshold
+        for threshold in MILESTONE_ASSISTS:
+            milestones[f"{threshold}_asts_pace"] = df.get("projected_season_ast", 0) >= threshold
+        for threshold in MILESTONE_STEALS:
+            milestones[f"{threshold}_stls_pace"] = df.get("projected_season_stl", 0) >= threshold
+        for threshold in MILESTONE_BLOCKS:
+            milestones[f"{threshold}_blks_pace"] = df.get("projected_season_blk", 0) >= threshold
         
         for milestone_name, milestone_condition in milestones.items():
             df[milestone_name] = milestone_condition

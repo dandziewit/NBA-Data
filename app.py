@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from data_fetcher import NBADataFetcher
 from stats_calculator import NBAStatsCalculator
 from projections import NBAProjections
+from config import CACHE_TTL_SECONDS, DEFAULT_TOP_PLAYERS, MAX_TOP_PLAYERS, MIN_GAMES_PLAYED_DEFAULT
 import time
 
 # Page configuration
@@ -55,7 +56,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
+@st.cache_data(ttl=CACHE_TTL_SECONDS)  # Cache for 1 hour
 def load_nba_data():
     """
     Load NBA data from API with caching
@@ -94,8 +95,8 @@ def display_player_rankings(players_df, calculator, projector):
     # Sidebar filters
     with st.sidebar:
         st.markdown("### Player Filters")
-        top_n_players = st.slider("Number of players to display", 10, 100, 50, 5)
-        min_games = st.slider("Minimum games played", 1, 30, 5)
+        top_n_players = st.slider("Number of players to display", 10, MAX_TOP_PLAYERS, DEFAULT_TOP_PLAYERS, 5)
+        min_games = st.slider("Minimum games played", 1, 30, MIN_GAMES_PLAYED_DEFAULT)
     
     # Calculate efficiency and rankings
     players_with_efficiency = calculator.calculate_player_efficiency(players_df)
